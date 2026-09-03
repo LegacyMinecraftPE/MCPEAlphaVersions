@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCPE Alpha versions</title>
+<link href="https://unpkg.com/material-components-web@14.0.0/dist/material-components-web.min.css" rel="stylesheet">
+<script src="https://unpkg.com/material-components-web@14.0.0/dist/material-components-web.min.js"></script>
+<style>
+body {
+    margin: 0;
+    padding: 24px;
+    background-color: #f5f5f5;
+    font-family: Roboto, sans-serif;
+}
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+.mdc-card {
+    padding: 24px;
+    margin-bottom: 24px;
+}
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.filter-group {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+#fileList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.file-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e0e0e0;
+}
+.file-item:last-child { border-bottom: none; }
+.file-item a {
+    text-decoration: none;
+    color: #6200ee;
+    font-weight: 500;
+}
+.status-msg {
+    padding: 16px;
+    color: #666;
+}
+</style>
+</head>
+<body class="mdc-typography">
+<div class="container">
+<div class="mdc-card">
+<h1 class="mdc-typography--headline4">Minecraft PE Alpha Repository</h1>
+
+<div class="controls">
+<div class="mdc-text-field mdc-text-field--outlined" id="search-field">
+<input type="text" id="searchInput" class="mdc-text-field__input" onkeyup="filterFiles()">
+<div class="mdc-notched-outline">
+<div class="mdc-notched-outline__leading"></div>
+<div class="mdc-notched-outline__notch">
+<label class="mdc-floating-label" for="searchInput">Search files</label>
+</div>
+<div class="mdc-notched-outline__trailing"></div>
+</div>
+</div>
+
+<div class="filter-group">
+<label><input type="checkbox" class="ext-filter" value="apk" checked onclick="filterFiles()"> APK</label>
+<label><input type="checkbox" class="ext-filter" value="ipa" checked onclick="filterFiles()"> IPA</label>
+<label><input type="checkbox" class="ext-filter" value="zip" checked onclick="filterFiles()"> ZIP</label>
+</div>
+</div>
+</div>
+
+<div class="mdc-card">
+<ul id="fileList">
+    <li class="status-msg" id="status">Loading files...</li>
+</ul>
+</div>
+</div>
+
+<script>
+mdc.textField.MDCTextField.attachTo(document.querySelector('#search-field'));
+
+const workerUrl = "https://mcpealpha.eqozqq.workers.dev/";
+
+async function fetchR2BucketFiles() {
+    const statusEl = document.getElementById('status');
+    try {
+        const response = await fetch(workerUrl);
+        if (!response.ok) throw new Error("Could not load versions from Worker");
+
+        const data = await response.json();
+        const fileList = document.getElementById('fileList');
+        fileList.innerHTML = "";
+
+        if (!data || data.length === 0) {
+            fileList.innerHTML = '<li class="status-msg">No files found</li>';
+            return;
+        }
+
+        data.forEach(item => {
+            const filename = item.version;
+            const ext = filename.split('.').pop().toLowerCase();
+
+            const li = document.createElement('li');
+            li.className = 'file-item';
+            li.setAttribute('data-ext', ext);
+            li.innerHTML = `<a href="${item.download_link}" download="${filename}">${filename}</a>`;
+            fileList.appendChild(li);
+        });
+
+        filterFiles();
+    } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Error loading files list. Please try again later.";
+    }
+}
+
+function filterFiles() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const checkboxes = document.querySelectorAll('.ext-filter');
+    const items = document.getElementsByClassName('file-item');
+    let activeExts = [];
+    checkboxes.forEach(cb => { if (cb.checked) activeExts.push(cb.value); });
+
+    for (let i = 0; i < items.length; i++) {
+        const fileName = items[i].textContent.toLowerCase();
+        const fileExt = items[i].getAttribute('data-ext');
+        if (fileName.includes(query) && activeExts.includes(fileExt)) {
+            items[i].style.display = "";
+        } else {
+            items[i].style.display = "none";
+        }
+    }
+}
+
+fetchR2BucketFiles();
+</script>
+</body>
+</html>
